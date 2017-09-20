@@ -1,0 +1,749 @@
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.util.List;
+import java.util.*;
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableModel;
+import javax.swing.table.TableRowSorter;
+
+//JTable scroller
+public class JTableMain extends JFrame {
+	List<Person> retVal = new ArrayList();
+
+	private JTable table;
+	FileOutputStream fo = null;
+	ObjectOutputStream oo = null;
+	ContactTableModel cTM = new ContactTableModel(retVal);
+
+	public JTableMain() {
+		super("Address Book");
+		List<Person> listPersons = createListPersons();
+
+		ContactTableModel tableModel = new ContactTableModel(listPersons);
+		table = new JTable(tableModel);
+		TableRowSorter<TableModel> rowSorter = new TableRowSorter<>((AbstractTableModel) table.getModel());
+		table.setAutoCreateRowSorter(true);
+		//((AbstractTableModel) table.getModel()).fireTableDataChanged();
+		add(new JScrollPane(table), BorderLayout.CENTER);
+		JTextField jtxtSearch;
+		JButton jb1, jbEdit, jbDelete;
+		JPanel jpAdd, jpSearch;
+		jb1 = new JButton("Add New Person");
+		jbEdit = new JButton("EDIT");
+		jbDelete = new JButton("DELETE");
+		add(jpAdd = new JPanel(), BorderLayout.SOUTH);
+		jpAdd.add(jb1);
+		jpAdd.add(jbEdit);
+		jpAdd.add(jbDelete);
+		add(jpSearch = new JPanel(), BorderLayout.NORTH);
+		jpSearch.add(jtxtSearch = new JTextField("Search..."));
+		jbEdit.addActionListener(new Edit());
+		jbDelete.addActionListener(new Delete());
+		table.setRowSorter(rowSorter);
+
+		jb1.addActionListener(new NewContac());
+		jtxtSearch.getDocument().addDocumentListener(new DocumentListener() {
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				throw new UnsupportedOperationException("Not supported yet.");
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				String text = jtxtSearch.getText();
+
+				if (text.trim().length() == 0) {
+					rowSorter.setRowFilter(null);
+				} else {
+					rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+				}
+			}
+
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				String text = jtxtSearch.getText();
+
+				if (text.trim().length() == 0) {
+					rowSorter.setRowFilter(null);
+				} else {
+					rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+				}
+			}
+
+		});
+
+		pack();
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setLocationRelativeTo(null);
+		new SerializationRead();
+
+	}
+
+	// Generic peeps
+	public List<Person> createListPersons() {
+		// String name, phone, city, state, zip, addressone, addresstwo, email;
+
+		try {
+
+			System.out.println(retVal);
+
+			// fo = new FileOutputStream("Desktop");
+			// oo = new ObjectOutputStream(fo);
+
+			retVal.add(new Person("Steve", "FL", "Orlando", 303054303));
+			retVal.add(new Person("Charlie", "AL", "Meowington", 403030303));
+			retVal.add(new Person("Bob", "AZ", "Dibbly", 303035403));
+			retVal.add(new Person("Tim", "TX", "Fort Lauderdale", 133030303));
+			retVal.add(new Person("Timmy", "NO", "Tampa", 303030543));
+			retVal.add(new Person("Charles", "OR", "Nyan", 303037703));
+			retVal.add(new Person("Woodrow", "NY", "New York", 355030303));
+			retVal.add(new Person("Thomas", "CO", "Colorado Springs", 303430303));
+			retVal.add(new Person("Nibbles", "CO", "Swerve", 303780303));
+			retVal.add(new Person("Bobby", "LA", "Kentucky", 303030303));
+			// retVal.addAll(new SerializationRead());
+			// oo.writeObject(retVal);
+
+		} catch (Exception ex) {
+			System.out.println(ex.getMessage());
+
+		} finally {
+			try {
+
+				fo.close();
+				oo.close();
+			} catch (Exception ex) {
+				System.out.println(ex.getMessage());
+			}
+		}
+		return retVal;
+
+	}
+
+	public class SerializationRead {
+
+		FileInputStream fi = null;
+		ObjectInputStream oi = null;
+
+		public SerializationRead() {
+			try {
+				fi = new FileInputStream("desktop");
+				oi = new ObjectInputStream(fi);
+
+				for (int i = 0; i < 20; i++) {
+					List<Person> retVal = (List<Person>) oi.readObject();
+					System.out.println(retVal);
+
+				}
+			} catch (Exception ex) {
+				System.out.println(ex.getMessage());
+				return;
+			} finally {
+				try {
+					fi.close();
+					oi.close();
+
+				} catch (Exception ex) {
+					System.out.println(ex.getMessage());
+					return;
+
+				}
+			}
+		}
+
+	}
+
+	public class Delete implements ActionListener {
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+	//		((AbstractTableModel) table.getModel()).fireTableDataChanged();
+			Object b = table.getSelectedRow();
+			Object a = table.getSelectedColumn();
+			ContactTableModel cTM = new ContactTableModel(retVal);
+			((AbstractTableModel) table.getModel()).fireTableDataChanged();
+			try {
+				cTM.removeRow((int) b);
+				System.out.println(retVal);
+				((AbstractTableModel) table.getModel()).fireTableDataChanged();
+				ContactTableModel cTM1 = new ContactTableModel(retVal);
+
+			} catch (Exception ex) {
+				JDialog jf2 = new JDialog();
+				jf2.setVisible(true);
+				jf2.setLocationRelativeTo(null);
+				jf2.setSize(250, 200);
+				jf2.add(new JLabel("Please make a selection\n before editing."));
+
+			}
+
+			((AbstractTableModel) table.getModel()).fireTableDataChanged();
+
+		}
+
+	}
+
+	public class Edit implements ActionListener {
+		JDialog jf1;
+		JTextField name, phone, city, state, zip, addressone, addresstwo;
+		JComboBox email;
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+			Object b = table.getSelectedRow();
+			jf1 = new JDialog();
+			jf1.setVisible(true);
+
+			jf1.setLayout(new GridLayout(9, 0));
+
+			jf1.setLocationRelativeTo(null);
+
+			try {
+				Person outto = new Person(name.getText(), phone.getText(), city.getText(), state.getText(),
+						zip.getText(), addressone.getText(), addresstwo.getText(),
+						email.getAccessibleContext().toString());
+				name = new JTextField(outto.getName().toString());
+				phone = new JTextField(outto.getPhone().toString());
+				city = new JTextField(outto.getCity().toString());
+				state = new JTextField(outto.getState().toString());
+				zip = new JTextField(outto.getZip().toString());
+				addressone = new JTextField(outto.getAddress1().toString());
+				addresstwo = new JTextField(outto.getAddress2().toString());
+				email = new JComboBox();
+				email.setEditable(true);
+			} catch (Exception ex) {
+				name = new JTextField("Name");
+				phone = new JTextField("Phone");
+				city = new JTextField("City");
+				state = new JTextField("State");
+				zip = new JTextField("Zip");
+				addressone = new JTextField("Address One");
+				addresstwo = new JTextField("Address Two");
+				email = new JComboBox();
+				email.setEditable(true);
+
+				email.setSelectedItem(b);
+
+			}
+
+			JButton jb1 = new JButton("Finish & Save");
+			jf1.pack();
+			jf1.add(name);
+			jf1.add(phone);
+			jf1.add(city);
+			jf1.add(state);
+			jf1.add(zip);
+			jf1.add(addressone);
+			jf1.add(addresstwo);
+			jf1.add(email);
+			jf1.add(jb1);
+			jf1.setSize(200, 300);
+
+			jb1.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+
+					/*
+					 * FileOutputStream fo = null; ObjectOutputStream oo = null;
+					 * FileInputStream fi = null; ObjectInputStream oi = null;
+					 */
+					// List<Person> listPersons = createListPersons();
+					try {
+						(table.getModel()).getValueAt(table.getSelectedRow(), 0);
+						// table.convertRowIndexToModel
+						// (table.getSelectedRow());
+						// cTM.getValueAt(table.getSelectedRow(),
+						email.addItem(email.getSelectedItem());
+						retVal.set((int) b,
+								new Person(name.getText(), phone.getText(), city.getText(), state.getText(),
+										zip.getText(), addressone.getText(), addresstwo.getText(),
+										email.getSelectedItem().toString()));
+						// table.convertRowIndexToModel
+						// (table.getSelectedRow());
+						System.out.println(retVal);
+						((AbstractTableModel) table.getModel()).fireTableDataChanged();
+						ContactTableModel cTM = new ContactTableModel(retVal);
+						jf1.dispose();
+					} catch (Exception ex) {
+						JDialog jf2 = new JDialog();
+						jf2.setVisible(true);
+						jf2.setLocationRelativeTo(null);
+						jf2.setSize(250, 200);
+						jf2.add(new JLabel("Please make a selection\n before editing."));
+
+					}
+					// ((AbstractTableModel)
+					// table.getModel()).fireTableDataChanged();
+					// ContactTableModel cTM= new ContactTableModel(retVal);
+					// System.out.println(cTM.getValueAt(table.getSelectedRow(),
+					// table.getSelectedColumn()));
+
+					// retVal.set(table.getSelectedRow(), new NewContac());
+					// cTM.getValueAt(table.getSelectedRow(),
+					// table.getSelectedColumn());
+
+				}
+
+			});
+		}
+	}
+
+	public class NewContac implements ActionListener {
+		JDialog jf1;
+		JTextField name, phone, city, state, zip, addressone, addresstwo, email;
+
+		FileOutputStream fo = null;
+		ObjectOutputStream oo = null;
+		FileInputStream fi = null;
+		ObjectInputStream oi = null;
+
+		@Override
+		public void actionPerformed(ActionEvent e) {
+
+			jf1 = new JDialog();
+			jf1.setVisible(true);
+
+			jf1.setLayout(new GridLayout(9, 0));
+
+			jf1.setLocationRelativeTo(null);
+			name = new JTextField("name");
+			phone = new JTextField("phone");
+			city = new JTextField("city");
+			state = new JTextField("state");
+			zip = new JTextField("Zip Code");
+			addressone = new JTextField("Address One");
+			addresstwo = new JTextField("Address Two");
+			email = new JTextField("Email");
+			JButton jb1 = new JButton("Finish & Save");
+			jf1.pack();
+			jf1.add(name);
+			jf1.add(phone);
+			jf1.add(city);
+			jf1.add(state);
+			jf1.add(zip);
+			jf1.add(addressone);
+			jf1.add(addresstwo);
+			jf1.add(email);
+			jf1.add(jb1);
+			jf1.setSize(200, 300);
+			jb1.addActionListener(new ActionListener() {
+
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					retVal.add(new Person(name.getText(), phone.getText(), city.getText(), state.getText(),
+							zip.getText(), addressone.getText(), addresstwo.getText(), email.getText()));
+
+					System.out.println(retVal);
+					((AbstractTableModel) table.getModel()).fireTableDataChanged();
+					ContactTableModel cTM = new ContactTableModel(retVal);
+					List<Person> retVal = new ArrayList();
+
+					try {
+						retVal = getVal();
+						retVal.add(new Person(name.getText(), phone.getText(), city.getText(), state.getText(),
+								zip.getText(), addressone.getText(), addresstwo.getText(), email.getText()));
+						// System.out.println(retVal);
+
+						fo = new FileOutputStream("Desktop");
+						oo = new ObjectOutputStream(fo);
+						oo.writeObject(retVal);
+						System.out.println("Saved");
+
+						jf1.dispose();
+					} catch (Exception ex) {
+						System.out.println(ex.getMessage());
+
+					}
+
+				}
+
+			});
+
+		}
+
+		public List<Person> getVal() {
+			List<Person> retval = new ArrayList();
+			try {
+				fi = new FileInputStream("desktop");
+				oi = new ObjectInputStream(fi);
+				for (int i = 0; i < 20; i++) {
+					retval = (List<Person>) oi.readObject();
+					System.out.println(retval);
+					return retval;
+				}
+			} catch (Exception ex) {
+				System.out.println(ex.getMessage());
+				return retval;
+			} finally {
+				try {
+					fi.close();
+					oi.close();
+					fo.close();
+					oo.close();
+				} catch (Exception ex) {
+					System.out.println(ex.getMessage());
+					return retval;
+				}
+			}
+			return retval;
+		}
+
+	}
+
+	// main
+	public static void main(String[] args) {
+		new Login();
+
+	}
+
+
+import java.util.List;
+
+import javax.swing.table.AbstractTableModel;
+
+//main table set up
+public class ContactTableModel extends AbstractTableModel {
+	static final int COLUMN_NO = 0;
+	private static final int COLUMN_NAME = 1;
+	private static final int COLUMN_PHONE = 2;
+	private static final int COLUMN_CITY = 3;
+	private static final int COLUMN_STATE = 4;
+
+	private String[] columnNames = { "No.", "Name", "Phone", "City", "State" };
+	private List<Person> listPersons;
+
+	public ContactTableModel(List<Person> listPersons) {
+		super();
+		this.listPersons = listPersons;
+		int indexCount = 1;
+		for (Person Person : listPersons) {
+			Person.setIndex(indexCount++);
+		}
+	}
+
+	@Override
+	public int getColumnCount() {
+		return columnNames.length;
+	}
+
+	@Override
+	public int getRowCount() {
+		return listPersons.size();
+	}
+
+	@Override
+	public Object getValueAt(int rowIndex, int columnIndex) {
+		Person Person = listPersons.get(rowIndex);
+		Object retVal = null;
+		switch (columnIndex) {
+		case COLUMN_NO:
+			retVal = Person.getIndex();
+			break;
+		case COLUMN_NAME:
+			retVal = Person.getName();
+			break;
+		case COLUMN_PHONE:
+			retVal = Person.getPhone();
+			break;
+		case COLUMN_CITY:
+			retVal = Person.getCity();
+			break;
+		case COLUMN_STATE:
+			retVal = Person.getState();
+			break;
+
+		default:
+			throw new IllegalArgumentException("Invalid column number.");
+		}
+		return retVal;
+	}
+
+	@Override
+	public Class<?> getColumnClass(int columnIndex) {
+		if (listPersons.isEmpty())
+			return Object.class;
+
+
+
+
+}
+
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.Serializable;
+import java.util.HashMap;
+
+public class Login {
+
+	public Login() {
+		HashMap<Serializable, Serializable> logger = new HashMap<Serializable,Serializable>();
+		Serializable doggo;
+		JFrame jf = new JFrame("Welcome Screen");
+		jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		jf.setLayout(new GridLayout(8, 0));
+		JLabel jl1 = new JLabel("Username:");
+		jl1.setHorizontalAlignment(0);
+		JLabel welcome = new JLabel("Welcome! Please enter your username & password.");
+		welcome.setHorizontalAlignment(0);
+		JTextField username = new JTextField();
+
+		username.setHorizontalAlignment(0);
+		JLabel jl2 = new JLabel("Password:");
+		jl2.setHorizontalAlignment(0);
+
+		JTextField password = new JTextField();
+
+		password.setHorizontalAlignment(0);
+		jf.add(welcome);
+		jf.add(jl1);
+		jf.add(username);
+		jf.add(jl2);
+		jf.add(password);
+
+		JButton enter = new JButton("Log In");
+		enter.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				String user = "user", pass = "pass";
+				user = username.getText();
+				pass = password.getText();
+
+				if (user.equals("username") && pass.equals("password")) {
+					System.out.println("Accepted");
+jf.dispose();
+					new JTableMain().setVisible(true);
+				}
+
+			}
+		});
+
+		JButton b1 = new JButton("New Account");
+		b1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				
+				JDialog d1 = new JDialog();
+				d1.setSize(400, 400);
+				d1.setLayout(new GridLayout(10, 0));
+				JLabel jl1, jl2, jl3, jl4;
+				JTextField jt1, jt2, jt3, jt4;
+				jt1 = new JTextField("Username");
+				jt2 = new JTextField("Password");
+				jt3 = new JTextField("Reenter Password");
+				jt4 = new JTextField("Dog's Name");
+				jl1 = new JLabel("Enter Desired Username");
+				jl1.setHorizontalTextPosition(0);
+				jl2 = new JLabel("Enter Password");
+				jl2.setHorizontalTextPosition(0);
+				jl3 = new JLabel("Reenter Password");
+				jl3.setHorizontalTextPosition(0);
+JButton jb1 = new JButton("Save");
+
+				jl4 = new JLabel("Dog's Name");
+				jl4.setHorizontalTextPosition(0);
+				d1.add(jl1);
+				d1.add(jt1);
+				d1.add(jl2);
+				d1.add(jt2);
+				d1.add(jl3);
+				d1.add(jt3);
+				d1.add(jl4);
+				d1.add(jt4);
+			
+				
+				System.out.println(logger);
+				d1.add(jb1);
+				
+
+				d1.setVisible(true);
+
+			}
+
+		
+			
+			
+			
+		});
+
+		JButton b2 = new JButton("Forgot Password");
+		b2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JDialog d1 = new JDialog(jf/* parent window */, "Forgot Password",
+						true/* father, child window: always use true */);
+				d1.setSize(400, 400);
+				d1.setLayout(new GridLayout(6, 0));
+				JLabel jl1, jl2;
+				JTextField jt1, jt2;
+				jt1 = new JTextField();
+				jt2 = new JTextField();
+
+				jl1 = new JLabel("Enter Username");
+				jl1.setHorizontalTextPosition(0);
+
+				jl2 = new JLabel("Dog's Name");
+				jl2.setHorizontalTextPosition(0);
+				d1.add(jl1);
+				d1.add(jt1);
+				d1.add(jl2);
+				d1.add(jt2);
+
+				d1.add(new JButton("Enter"));
+
+				d1.setVisible(true);
+
+			}
+		});
+		jf.add(enter);
+		jf.add(b1);
+		jf.add(b2);
+		jf.setSize(400, 400);
+		jf.setVisible(true);
+		jf.setLocationRelativeTo(null);
+
+	}
+}
+
+import java.io.Serializable;
+import java.util.*;
+
+//person class
+public class Person implements java.io.Serializable {
+
+	private int index;
+	private Serializable name;
+	private Serializable city;
+	private Serializable state;
+	private Serializable zip;
+	private Serializable phone;
+	private Serializable address1 = new ArrayList();
+	private Serializable address2 = new ArrayList();
+	private Serializable email = new ArrayList();
+
+	Person(Serializable name, Serializable city, Serializable state, Serializable phone) {
+		super();
+		this.name = name;
+
+		this.city = city;
+		this.state = state;
+
+		this.phone = phone;
+
+	}
+
+	Person(Serializable name, Serializable phone, Serializable city, Serializable state, Serializable zip,
+			Serializable address1, Serializable address2, Serializable email) {
+		super();
+		this.name = name;
+
+		this.address1 = address1;
+		this.address2 = address2;
+		this.email = email;
+		this.city = city;
+		this.state = state;
+		this.zip = zip;
+		this.phone = phone;
+
+	}
+
+	public Person(Object email) {
+		this.email = (Serializable) email;
+	}
+
+	public Serializable getAddress1() {
+		return address1;
+	}
+
+	public void setAddress1(ArrayList address1) {
+		this.address1 = address1;
+	}
+
+	public Serializable getAddress2() {
+		return address2;
+	}
+
+	public void setAddress2(ArrayList address2) {
+		this.address2 = address2;
+	}
+
+	public Serializable getEmail() {
+		return email;
+	}
+
+	public void setEmail(ArrayList email) {
+		this.email = email;
+	}
+
+	public void setName(Serializable name) {
+		this.name = name;
+	}
+
+	public void setCity(Serializable city) {
+		this.city = city;
+	}
+
+	public void setState(Serializable state) {
+		this.state = state;
+	}
+
+	public int getIndex() {
+		return index;
+	}
+
+	public void setIndex(int index) {
+		this.index = index;
+	}
+
+	public Serializable getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public Serializable getCity() {
+		return city;
+	}
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+
+	public Serializable getState() {
+		return state;
+	}
+
+	public void setState(String state) {
+		this.state = state;
+	}
+
+	public Serializable getZip() {
+		return zip;
+	}
+
+	public void setZip(int zip) {
+		this.zip = zip;
+	}
+
+	public Serializable getPhone() {
+		return phone;
+	}
+
+	public void setPhone(Serializable phone) {
+		this.phone = phone;
+	}
+
+	@Override
+	public String toString() {
+		return "Person [index=" + index + ", name=" + name + ", city=" + city + ", state=" + state + ", zip=" + zip
+				+ ", phone=" + phone + ", address1=" + address1 + ", address2=" + address2 + ", email=" + email + "]\n";
+	}
+
+}
